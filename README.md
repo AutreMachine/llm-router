@@ -36,6 +36,25 @@ python -m llm_router -c config/config.yaml
 ```
 
 Then open `http://<router-ip>:8001/` from the local network.
+A "data" folder will be created on the disk to store the metrics.
+
+## Docker
+You can use this docker-compose file :
+```
+services:
+  llm-router:
+    image: autremachine/llm-router:latest
+    container_name: llm-router
+    volumes:
+      - /data/llm-router/data:/data/
+      - /data/llm-router/config:/config/
+    restart: unless-stopped
+    ports:
+      - "42000:8000"   # OpenAI-compatible API : modify with your port (here : 42000, port 8000 is the one in the server: section of config.yaml)
+      - "42001:8001"   # Admin console : modify with your port (here : 42001, port 8001 is the one in the admin: section of config.yaml))
+
+```
+The volume "config" map to the folders containing the config.yaml file, and the "data" contains data produced by the API.
 
 ## How routing works
 
