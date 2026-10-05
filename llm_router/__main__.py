@@ -87,6 +87,8 @@ def main() -> None:
     if (cfg.admin.enabled and cfg.admin.port == cfg.server.port
             and cfg.admin.host in (cfg.server.host, "0.0.0.0")):
         sys.exit("admin.port must be different from server.port")
+    #check config
+    
     asyncio.run(run(cfg, args.log_level))
 
 

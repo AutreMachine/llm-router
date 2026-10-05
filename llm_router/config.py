@@ -187,7 +187,9 @@ def load_config(path: str | Path) -> Config:
     
     if not path.exists():
         print(f"Error : Configuration file not found: {path}")
-        print(f"Please provide a valid configuration file on path {path}.")
+        print(f"  Please provide a valid configuration file on path {path}.")
+        print("  You can create one based on the example config.yaml provided in the repository.")
+        print("  Don't forget to provide a vlid API Key in the configuration file.")
         sys.exit(1)
         #raise FileNotFoundError(f"Configuration file not found: {path}")
     

@@ -11,4 +11,4 @@ COPY ./config.example.yaml ./config.example.yaml
 EXPOSE 8000 8001
 
 ENTRYPOINT ["python", "-m", "llm_router"]
-CMD ["-c", "/data/config.yaml"]
+CMD ["-c", "/config/config.yaml"]

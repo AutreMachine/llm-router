@@ -27,9 +27,9 @@ server:
   aging_seconds: 0             # anti-starvation: +1 priority level every N seconds of waiting (0 = off)
   internal_streaming: true     # internally stream non-streaming requests to measure prefill
   max_retries: 1               # retries on another machine if the first is unreachable
-  db_path: router_metrics.db   # SQLite metrics file (relative to this file's directory)
-  log_file: router_requests.jsonl  # one JSON line per request (null to disable)
-  machines_file: machines.yaml # pool modified from the console; if it exists, overrides the 'machines' section below
+  db_path: /data/router_metrics.db   # SQLite metrics file (relative to this file's directory)
+  log_file: /data/router_requests.jsonl  # one JSON line per request (null to disable)
+  machines_file: /data/machines.yaml # pool modified from the console; if it exists, overrides the 'machines' section below
 
 # ---- Web administration console (local network, no authentication) -----------
 admin:
