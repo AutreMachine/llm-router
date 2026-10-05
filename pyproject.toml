@@ -1,0 +1,21 @@
+[project]
+name = "llm-router"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "AutreMachine",email = "admin@autremachine.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi (>=0.142.2,<0.143.0)",
+    "uvicorn[standard] (>=0.54.0,<0.55.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "pyyaml (>=6.0.3,<7.0.0)",
+    "pytest (>=9.1.1,<10.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

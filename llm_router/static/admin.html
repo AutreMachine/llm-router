@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Router · Console</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --border: #e2e5ea; --text: #161a20; --muted: #677080;
+  --accent: #2f6fde; --accent-soft: #e6eefc; --ok: #1f9d55; --ok-soft: #e3f5ea; --warn: #c27c0e; --warn-soft: #fbf0dc;
+  --err: #d0393e; --err-soft: #fbe5e6; --idle: #9aa3b0;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --radius: 10px; --shadow: 0 1px 2px rgba(16,24,40,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1216; --panel: #171b21; --panel-2: #1e232b; --border: #2a303a; --text: #e6e9ee; --muted: #8b94a3;
+    --accent: #6b9cff; --accent-soft: #1d2a44; --ok: #3ccf7f; --ok-soft: #14301f; --warn: #f0b24a; --warn-soft: #3a2c12;
+    --err: #ff6b6f; --err-soft: #3d1c1e; --idle: #5d6573; --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1216; --panel: #171b21; --panel-2: #1e232b; --border: #2a303a; --text: #e6e9ee; --muted: #8b94a3;
+  --accent: #6b9cff; --accent-soft: #1d2a44; --ok: #3ccf7f; --ok-soft: #14301f; --warn: #f0b24a; --warn-soft: #3a2c12;
+  --err: #ff6b6f; --err-soft: #3d1c1e; --idle: #5d6573; --shadow: none;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 var(--sans); }
+button, input, select { font: inherit; color: inherit; }
+.num, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+
+header { position: sticky; top: 0; z-index: 10; background: var(--panel); border-bottom: 1px solid var(--border); }
+.bar { max-width: 1400px; margin: 0 auto; padding: 0 20px; display: flex; align-items: center; gap: 20px; height: 56px; }
+.brand { font-weight: 650; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.brand svg { color: var(--accent); }
+nav { display: flex; gap: 2px; height: 100%; overflow-x: auto; }
+nav button { background: none; border: 0; padding: 0 14px; height: 100%; cursor: pointer; color: var(--muted);
+  border-bottom: 2px solid transparent; white-space: nowrap; }
+nav button:hover { color: var(--text); }
+nav button.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 550; }
+nav .count { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 6px; border-radius: 9px; font-size: 11px;
+  background: var(--panel-2); color: var(--muted); text-align: center; }
+nav button.active .count { background: var(--accent-soft); color: var(--accent); }
+.spacer { flex: 1; }
+.hdr-meta { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); display: inline-block; margin-right: 6px; }
+.live-dot.stale { background: var(--err); }
+.icon-btn { background: none; border: 1px solid var(--border); border-radius: 8px; width: 32px; height: 32px; cursor: pointer;
+  display: inline-grid; place-items: center; color: var(--muted); }
+.icon-btn:hover { color: var(--text); background: var(--panel-2); }
+
+main { max-width: 1400px; margin: 0 auto; padding: 20px; }
+section[hidden] { display: none; }
+h2 { font-size: 15px; font-weight: 600; margin: 24px 0 10px; display: flex; align-items: center; gap: 10px; }
+h2:first-child { margin-top: 0; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.kpi { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; box-shadow: var(--shadow); }
+.kpi .label { font-size: 12px; color: var(--muted); }
+.kpi .value { font: 600 22px/1.3 var(--mono); margin-top: 2px; }
+.kpi .value small { font-size: 13px; color: var(--muted); font-weight: 500; }
+
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 8px 10px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border); }
+th { font-size: 12px; font-weight: 550; color: var(--muted); background: var(--panel-2); position: sticky; top: 0; }
+th:first-child { border-top-left-radius: var(--radius); } th:last-child { border-top-right-radius: var(--radius); }
+tbody tr:last-child td { border-bottom: 0; }
+td.r, th.r { text-align: right; }
+tbody tr.clickable { cursor: pointer; }
+tbody tr.clickable:hover td { background: var(--panel-2); }
+tr.err td { background: color-mix(in srgb, var(--err-soft) 55%, transparent); }
+tr.detail td { white-space: normal; background: var(--panel-2); font-size: 13px; }
+.detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; }
+.detail-grid pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12px var(--mono); }
+.empty { padding: 36px; text-align: center; color: var(--muted); }
+
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 550;
+  background: var(--panel-2); color: var(--muted); }
+.badge.ok { background: var(--ok-soft); color: var(--ok); }
+.badge.warn { background: var(--warn-soft); color: var(--warn); }
+.badge.err { background: var(--err-soft); color: var(--err); }
+.badge.accent { background: var(--accent-soft); color: var(--accent); }
+.prio-high { background: var(--err-soft); color: var(--err); }
+.prio-medium { background: var(--warn-soft); color: var(--warn); }
+.prio-low { background: var(--panel-2); color: var(--muted); }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: var(--idle); flex: none; }
+.dot.ok { background: var(--ok); } .dot.err { background: var(--err); } .dot.warn { background: var(--warn); }
+.pulse { animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+
+.slots { display: flex; gap: 3px; }
+.slot { width: 14px; height: 8px; border-radius: 2px; background: var(--panel-2); border: 1px solid var(--border); }
+.slot.on { background: var(--accent); border-color: var(--accent); }
+.minibar { position: relative; height: 6px; border-radius: 3px; background: var(--panel-2); width: 90px; display: inline-block; vertical-align: middle; margin-left: 8px; }
+.minibar > i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--accent); }
+
+.machine-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.mstrip { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; display: grid; gap: 6px; }
+.mstrip .top { display: flex; align-items: center; gap: 8px; font-weight: 550; }
+.mstrip .sub { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.toolbar select, .toolbar input, .field input, .field select {
+  height: 34px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); min-width: 0; }
+.toolbar input[type=search] { width: 220px; }
+.btn { height: 34px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn:hover { background: var(--panel-2); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.danger { color: var(--err); }
+.btn.danger:hover { background: var(--err-soft); }
+.btn.sm { height: 28px; padding: 0 10px; font-size: 13px; }
+.btn:disabled { opacity: .5; cursor: default; }
+.pager { display: flex; align-items: center; gap: 8px; justify-content: flex-end; padding: 10px 12px; font-size: 13px; color: var(--muted); }
+label.check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 10px; box-shadow: var(--shadow); }
+.card.disabled { opacity: .65; }
+.card .head { display: flex; align-items: center; gap: 10px; }
+.card .name { font-weight: 600; font-size: 15px; }
+.card .url { font: 12px var(--mono); color: var(--muted); word-break: break-all; }
+.card .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.card .stat .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.card .stat .v { font: 550 14px var(--mono); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 12px var(--mono); padding: 2px 8px; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--border); }
+.chip .t { font-family: var(--sans); font-size: 10px; text-transform: uppercase; color: var(--muted); margin-left: 6px; letter-spacing: .04em; }
+.chip.emb { border-style: dashed; }
+.card .errline { font: 12px var(--mono); color: var(--err); background: var(--err-soft); border-radius: 6px; padding: 6px 8px; word-break: break-word; }
+.card .actions { display: flex; flex-wrap: wrap; gap: 6px; border-top: 1px solid var(--border); padding-top: 10px; }
+
+dialog { border: 1px solid var(--border); border-radius: 14px; padding: 0; background: var(--panel); color: var(--text);
+  width: min(720px, calc(100vw - 32px)); box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+dialog::backdrop { background: rgba(10,14,20,.45); }
+.dlg-head { padding: 16px 20px; border-bottom: 1px solid var(--border); font-weight: 600; display: flex; align-items: center; }
+.dlg-body { padding: 16px 20px; display: grid; gap: 14px; max-height: 70vh; overflow: auto; }
+.dlg-foot { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field { display: grid; gap: 4px; }
+.field > span { font-size: 12px; color: var(--muted); font-weight: 550; }
+.field .hint { font-size: 12px; color: var(--muted); }
+.url-row { display: flex; gap: 8px; } .url-row input { flex: 1; }
+.models-table th, .models-table td { padding: 4px 6px; border: 0; background: none; }
+.models-table input, .models-table select { width: 100%; height: 32px; padding: 0 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); }
+.probe { font-size: 13px; padding: 8px 10px; border-radius: 8px; background: var(--panel-2); }
+.probe .chip { cursor: pointer; } .probe .chip:hover { border-color: var(--accent); color: var(--accent); }
+.form-error { color: var(--err); font-size: 13px; margin-right: auto; }
+
+.toast { position: fixed; bottom: 20px; right: 20px; background: var(--text); color: var(--bg); padding: 10px 14px; border-radius: 8px;
+  font-size: 13px; opacity: 0; transform: translateY(8px); transition: .2s; pointer-events: none; z-index: 100; max-width: 420px; }
+.toast.show { opacity: 1; transform: none; }
+.toast.err { background: var(--err); color: #fff; }
+
+@media (max-width: 720px) {
+  .bar { padding: 0 12px; gap: 10px; flex-wrap: wrap; height: auto; padding-top: 8px; } main { padding: 14px 12px; }
+  nav { order: 3; width: 100%; height: 44px; } .spacer { display: none; } .hdr-meta { margin-left: auto; }
+  .hdr-meta .uptime { display: none; }
+  .grid2 { grid-template-columns: 1fr; } .cards { grid-template-columns: 1fr; }
+  .toolbar input[type=search] { width: 100%; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="5" r="2.5"/><circle cx="19" cy="12" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M7.5 12h9M7 10.5 16.8 6.2M7 13.5l9.8 4.3"/></svg>
+      <span>LLM Router</span>
+    </div>
+    <nav id="tabs">
+      <button data-tab="live" class="active">Live<span class="count" id="cnt-live">0</span></button>
+      <button data-tab="history">History</button>
+      <button data-tab="machines">Machines<span class="count" id="cnt-machines">0</span></button>
+      <button data-tab="stats">Statistics</button>
+    </nav>
+    <div class="spacer"></div>
+    <div class="hdr-meta">
+      <span id="auth-state"></span>
+      <span class="uptime"><span class="live-dot" id="live-dot"></span><span id="uptime">—</span></span>
+      <button class="icon-btn" id="theme-btn" title="Light / dark theme" aria-label="Toggle theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ======================================================= LIVE -->
+  <section id="tab-live">
+    <div class="kpis" id="kpis"></div>
+    <h2>Machines</h2>
+    <div class="machine-strip" id="mstrip"></div>
+    <h2>Live requests <span class="muted" style="font-weight:400;font-size:13px" id="live-sub"></span></h2>
+    <div class="panel table-wrap">
+      <table>
+        <thead><tr>
+          <th>State</th><th>ID</th><th>Model</th><th>Machine</th><th>Priority</th><th>Client</th>
+          <th class="r">Wait</th><th class="r">Running</th><th>Phase</th><th class="r">TTFT</th><th class="r">Tokens</th><th class="r">tok/s</th>
+        </tr></thead>
+        <tbody id="live-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ======================================================= HISTORY -->
+  <section id="tab-history" hidden>
+    <div class="toolbar" id="h-filters">
+      <select id="f-hours" aria-label="Period">
+        <option value="1">Last hour</option><option value="24" selected>24 hours</option>
+        <option value="168">7 days</option><option value="720">30 days</option><option value="">All</option>
+      </select>
+      <select id="f-model" aria-label="Model"><option value="">All models</option></select>
+      <select id="f-machine" aria-label="Machine"><option value="">All machines</option></select>
+      <select id="f-priority" aria-label="Priority">
+        <option value="">All priorities</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
+      </select>
+      <select id="f-status" aria-label="Status">
+        <option value="">All statuses</option><option value="ok">Success</option><option value="error">Errors</option>
+      </select>
+      <select id="f-client" aria-label="Client"><option value="">All clients</option></select>
+      <input type="search" id="f-q" placeholder="ID or error text…">
+      <div class="spacer"></div>
+      <label class="check"><input type="checkbox" id="f-auto" checked> Auto-refresh</label>
+    </div>
+    <div class="panel">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Date</th><th>ID</th><th>Client</th><th>Type</th><th>Model</th><th>Machine</th><th>Prio.</th><th>Status</th>
+            <th class="r">Queue</th><th class="r">TTFT</th><th class="r">Total</th><th class="r">Prompt</th><th class="r">Compl.</th>
+            <th class="r">Prefill tok/s</th><th class="r">Gen. tok/s</th>
+          </tr></thead>
+          <tbody id="h-body"></tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <span id="h-range"></span>
+        <button class="btn sm" id="h-prev">← Previous</button>
+        <button class="btn sm" id="h-next">Next →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= MACHINES -->
+  <section id="tab-machines" hidden>
+    <div class="toolbar">
+      <span class="muted" id="m-summary"></span>
+      <div class="spacer"></div>
+      <button class="btn primary" id="m-add">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Add a machine
+      </button>
+    </div>
+    <div class="cards" id="m-cards"></div>
+  </section>
+
+  <!-- ======================================================= STATS -->
+  <section id="tab-stats" hidden>
+    <div class="toolbar">
+      <select id="s-hours" aria-label="Period">
+        <option value="1">Last hour</option><option value="24" selected>24 hours</option>
+        <option value="168">7 days</option><option value="720">30 days</option><option value="87600">All</option>
+      </select>
+      <span class="muted">Average performance per machine and model (successful and failed requests)</span>
+    </div>
+    <div class="panel table-wrap">
+      <table>
+        <thead><tr>
+          <th>Machine</th><th>Model</th><th class="r">Requests</th><th class="r">Errors</th>
+          <th>Prefill tok/s <span style="font-weight:400">(avg · min–max)</span></th>
+          <th>Generation tok/s <span style="font-weight:400">(avg · min–max)</span></th>
+          <th class="r">Avg. TTFT</th><th class="r">Avg. / max queue</th><th class="r">Prompt / gen tokens</th>
+        </tr></thead>
+        <tbody id="s-body"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- ======================================================= MACHINE DIALOG -->
+<dialog id="dlg">
+  <form id="m-form" method="dialog" novalidate>
+    <div class="dlg-head"><span id="dlg-title">Add a machine</span></div>
+    <div class="dlg-body">
+      <div class="grid2">
+        <label class="field"><span>Name</span><input name="name" required placeholder="gpu-4090" autocomplete="off"></label>
+        <label class="field"><span>Backend API key</span>
+          <input name="api_key" type="password" autocomplete="new-password" placeholder="(none)">
+          <label class="check" id="clear-key-wrap" hidden><input type="checkbox" name="clear_key"> Clear existing key</label>
+        </label>
+      </div>
+      <div class="field">
+        <span>Backend OpenAI URL</span>
+        <div class="url-row">
+          <input name="url" required placeholder="http://192.168.1.10:8080/v1" autocomplete="off">
+          <button type="button" class="btn" id="probe-btn">Test / detect models</button>
+        </div>
+        <div class="probe" id="probe-out" hidden></div>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>Performance (relative score)</span><input name="performance" type="number" min="0.01" step="any" value="10">
+          <span class="hint">The idle machine with the highest score is chosen first.</span></label>
+        <label class="field"><span>Max concurrent requests</span><input name="max_concurrent" type="number" min="1" step="1" value="1">
+          <span class="hint">Number of real backend slots (--parallel, OLLAMA_NUM_PARALLEL…).</span></label>
+      </div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap">
+        <label class="check"><input type="checkbox" name="enabled" checked> Enabled</label>
+        <label class="check"><input type="checkbox" name="supports_stream_options" checked> Backend accepts <span class="mono">stream_options</span></label>
+      </div>
+      <div class="field">
+        <span>Served models</span>
+        <table class="models-table">
+          <thead><tr><th>Exposed name</th><th style="width:130px">Type</th><th>Backend name <span class="muted">(if different)</span></th><th style="width:90px">Max concurr.</th><th style="width:36px"></th></tr></thead>
+          <tbody id="models-rows"></tbody>
+        </table>
+        <div><button type="button" class="btn sm" id="add-model">+ Add model</button></div>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <span class="form-error" id="form-error"></span>
+      <button type="button" class="btn" id="dlg-cancel">Cancel</button>
+      <button type="submit" class="btn primary" id="dlg-save">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+// ------------------------------------------------------------------ utilities
+const $ = (s, el = document) => el.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const nf1 = new Intl.NumberFormat("en-US", {maximumFractionDigits: 1});
+const nf0 = new Intl.NumberFormat("en-US", {maximumFractionDigits: 0});
+const num = (v, f = nf1) => v == null ? '<span class="muted">—</span>' : f.format(v);
+function dur(s) {
+  if (s == null) return '<span class="muted">—</span>';
+  if (s < 1) return nf0.format(s * 1000) + " ms";
+  if (s < 60) return nf1.format(s) + " s";
+  const m = Math.floor(s / 60);
+  return m < 60 ? `${m} min ${Math.floor(s % 60)} s` : `${Math.floor(m / 60)} h ${m % 60} min`;
+}
+const ms = v => v == null ? '<span class="muted">—</span>' : dur(v / 1000);
+function when(ts) {
+  const d = new Date(ts * 1000), now = new Date();
+  const t = d.toLocaleTimeString("en-US");
+  return d.toDateString() === now.toDateString() ? t : d.toLocaleDateString("en-US", {day: "2-digit", month: "2-digit"}) + " " + t;
+}
+const EP = {"chat/completions": "chat", "completions": "compl.", "embeddings": "emb."};
+const prioBadge = (p, eff) => `<span class="badge prio-${esc(p)}">${esc(p)}</span>` +
+  (eff && eff !== p ? ` <span class="muted" title="Effective priority after aging">→ ${esc(eff)}</span>` : "");
+function statusBadge(s) {
+  const cls = s < 400 ? "ok" : s === 499 ? "warn" : "err";
+  return `<span class="badge ${cls}">${esc(s)}</span>`;
+}
+async function api(path, opts = {}) {
+  const r = await fetch(path, {headers: {"Content-Type": "application/json"}, ...opts});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.detail || data.error?.message || `HTTP ${r.status}`);
+  return data;
+}
+let toastTimer;
+function toast(msg, isErr = false) {
+  const t = $("#toast");
+  t.textContent = msg; t.className = "toast show" + (isErr ? " err" : "");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = "toast", 3500);
+}
+
+// ------------------------------------------------------------------ theme
+const root = document.documentElement;
+try { const th = localStorage.getItem("theme"); if (th) root.dataset.theme = th; } catch {}
+$("#theme-btn").onclick = () => {
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+  try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+};
+
+// ------------------------------------------------------------------ tabs
+let currentTab = "live";
+function showTab(name) {
+  currentTab = name;
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll("main > section").forEach(s => s.hidden = s.id !== "tab-" + name);
+  try { history.replaceState(null, "", "#" + name); } catch {}
+  refresh(true);
+}
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+
+// ------------------------------------------------------------------ LIVE
+function kpi(label, value, sub = "") {
+  return `<div class="kpi"><div class="label">${label}</div><div class="value">${value}${sub ? ` <small>${sub}</small>` : ""}</div></div>`;
+}
+function slots(active, max) {
+  if (max > 16) return `<span class="num">${active}/${max}</span>`;
+  return `<div class="slots" title="${active}/${max} slots occupied">` +
+    Array.from({length: max}, (_, i) => `<span class="slot ${i < active ? "on" : ""}"></span>`).join("") + "</div>";
+}
+function machineState(m) {
+  if (!m.enabled) return ["", "Disabled"];
+  if (!m.healthy) return ["err", "Offline"];
+  if (m.active >= m.max_concurrent) return ["warn", "Busy"];
+  return ["ok", m.active ? "Active" : "Idle"];
+}
+async function loadOverview() {
+  const o = await api("/api/overview");
+  const h = o.last_hour;
+  $("#cnt-machines").textContent = o.machines_total;
+  $("#cnt-live").textContent = o.running + o.queued;
+  $("#kpis").innerHTML =
+    kpi("Running", o.running) + kpi("Queued", o.queued) +
+    kpi("Machines online", o.machines_up, "/ " + o.machines_total) +
+    kpi("Slots used", o.slots_used, "/ " + o.slots_total) +
+    kpi("Requests (1 h)", nf0.format(h.requests), h.errors ? `${h.errors} err.` : "") +
+    kpi("Avg. generation (1 h)", h.avg_gen_tps ? nf1.format(h.avg_gen_tps) : "—", "tok/s") +
+    kpi("Avg. prefill (1 h)", h.avg_prefill_tps ? nf0.format(h.avg_prefill_tps) : "—", "tok/s");
+  $("#uptime").textContent = "online for " + dur(o.uptime_s).replace(/<[^>]+>/g, "");
+  $("#auth-state").innerHTML = o.auth_enabled ? '<span class="badge ok" title="Public API requires a key">API secured</span>'
+                                              : '<span class="badge err" title="Public API is open">API unsecured</span>';
+}
+async function loadLive() {
+  const [, d] = await Promise.all([loadOverview(), api("/api/active")]);
+  const reqs = d.requests;
+  $("#cnt-live").textContent = reqs.length;
+  $("#cnt-machines").textContent = d.machines.length;
+  const q = reqs.filter(r => r.state === "queued").length;
+  $("#live-sub").textContent = reqs.length ? `${reqs.length - q} running · ${q} queued` : "";
+  $("#mstrip").innerHTML = d.machines.length ? d.machines.map(m => {
+    const [cls, label] = machineState(m);
+    return `<div class="mstrip">
+      <div class="top"><span class="dot ${cls}"></span>${esc(m.name)}<span class="spacer"></span>${slots(m.active, m.max_concurrent)}</div>
+      <div class="sub"><span>${label}</span><span class="num">${m.observed_gen_tps ? nf1.format(m.observed_gen_tps) + " tok/s" : ""}</span></div>
+    </div>`;
+  }).join("") : '<div class="muted">No machines. Add one from the Machines tab.</div>';
+  $("#live-body").innerHTML = reqs.length ? reqs.map(r => {
+    const state = r.state === "running"
+      ? `<span class="badge accent"><span class="dot ok pulse"></span>Running</span>`
+      : `<span class="badge warn">Queue #${r.queue_position ?? "?"}</span>`;
+    return `<tr>
+      <td>${state}${r.attempt > 1 ? ` <span class="badge err" title="Retry after failure">attempt ${r.attempt}</span>` : ""}</td>
+      <td class="mono">${esc(r.id)}</td><td class="mono">${esc(r.model)}</td>
+      <td>${r.machine ? esc(r.machine) : '<span class="muted">—</span>'}</td>
+      <td>${prioBadge(r.priority, r.effective_priority)}</td>
+      <td>${esc(r.client ?? "—")} <span class="muted mono">${esc(r.client_ip ?? "")}</span></td>
+      <td class="r num">${dur(r.queue_wait_s)}</td><td class="r num">${dur(r.running_s)}</td>
+      <td>${r.phase ? esc(r.phase) : '<span class="muted">waiting</span>'}${r.stream ? ' <span class="muted">· stream</span>' : ""}</td>
+      <td class="r num">${ms(r.ttft_ms)}</td><td class="r num">${num(r.tokens, nf0)}</td><td class="r num">${num(r.live_tps)}</td>
+    </tr>`;
+  }).join("") : `<tr><td colspan="12" class="empty">No active requests.</td></tr>`;
+}
+
+// ------------------------------------------------------------------ HISTORY
+const H = {offset: 0, limit: 50, open: new Set(), facetsLoaded: false};
+function fillSelect(sel, values, keep) {
+  const cur = sel.value, first = sel.options[0].outerHTML;
+  sel.innerHTML = first + values.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+  if (keep && values.includes(cur)) sel.value = cur;
+}
+async function loadHistory() {
+  const p = new URLSearchParams({limit: H.limit, offset: H.offset});
+  for (const k of ["hours", "model", "machine", "priority", "status", "client", "q"]) {
+    const v = $("#f-" + k).value.trim(); if (v) p.set(k, v);
+  }
+  const d = await api("/api/requests?" + p);
+  fillSelect($("#f-model"), d.facets.model, true);
+  fillSelect($("#f-machine"), d.facets.machine, true);
+  fillSelect($("#f-client"), d.facets.client, true);
+  const end = Math.min(H.offset + d.rows.length, d.total);
+  $("#h-range").textContent = d.total ? `${H.offset + 1}–${end} of ${nf0.format(d.total)}` : "";
+  $("#h-prev").disabled = H.offset === 0;
+  $("#h-next").disabled = end >= d.total;
+  $("#h-body").innerHTML = d.rows.length ? d.rows.map(r => {
+    const open = H.open.has(r.request_id);
+    const row = `<tr class="clickable ${r.status >= 400 ? "err" : ""}" data-id="${esc(r.request_id)}" title="${esc(r.error ?? "")}">
+      <td class="num">${when(r.ts)}</td><td class="mono">${esc(r.request_id)}</td><td>${esc(r.client ?? "—")}</td>
+      <td class="muted">${esc(EP[r.endpoint] ?? r.endpoint)}${r.stream ? " · stream" : ""}</td>
+      <td class="mono">${esc(r.model)}</td><td>${esc(r.machine ?? "—")}</td><td>${prioBadge(r.priority)}</td><td>${statusBadge(r.status)}</td>
+      <td class="r num">${ms(r.queue_wait_ms)}</td><td class="r num">${ms(r.ttft_ms)}</td><td class="r num">${ms(r.total_ms)}</td>
+      <td class="r num">${num(r.prompt_tokens, nf0)}</td><td class="r num">${num(r.completion_tokens, nf0)}</td>
+      <td class="r num">${num(r.prefill_tps)}</td><td class="r num">${num(r.gen_tps)}</td></tr>`;
+    const detail = open ? `<tr class="detail"><td colspan="15"><div class="detail-grid">
+      <span class="muted">Date</span><span>${new Date(r.ts * 1000).toLocaleString("en-US")}</span>
+      <span class="muted">Client IP</span><span class="mono">${esc(r.client_ip ?? "—")}</span>
+      <span class="muted">Metrics source</span><span>${esc(r.metrics_source ?? "—")}</span>
+      ${r.error ? `<span class="muted">Error / note</span><pre>${esc(r.error)}</pre>` : ""}
+    </div></td></tr>` : "";
+    return row + detail;
+  }).join("") : `<tr><td colspan="15" class="empty">No requests for these filters.</td></tr>`;
+}
+$("#h-body").onclick = e => {
+  const tr = e.target.closest("tr.clickable"); if (!tr) return;
+  const id = tr.dataset.id; H.open.has(id) ? H.open.delete(id) : H.open.add(id); loadHistory();
+};
+$("#h-prev").onclick = () => { H.offset = Math.max(0, H.offset - H.limit); loadHistory(); };
+$("#h-next").onclick = () => { H.offset += H.limit; loadHistory(); };
+let qTimer;
+document.querySelectorAll("#h-filters select").forEach(s => s.onchange = () => { H.offset = 0; loadHistory(); });
+$("#f-q").oninput = () => { clearTimeout(qTimer); qTimer = setTimeout(() => { H.offset = 0; loadHistory(); }, 300); };
+
+// ------------------------------------------------------------------ MACHINES
+let machines = [];
+async function loadMachines() {
+  machines = (await api("/api/machines")).machines;
+  $("#cnt-machines").textContent = machines.length;
+  const up = machines.filter(m => m.enabled && m.healthy).length;
+  $("#m-summary").textContent = `${machines.length} machine(s) · ${up} online`;
+  $("#m-cards").innerHTML = machines.length ? machines.map(m => {
+    const [cls, label] = machineState(m);
+    return `<div class="card ${m.enabled ? "" : "disabled"}" data-name="${esc(m.name)}">
+      <div class="head"><span class="dot ${cls}"></span><span class="name">${esc(m.name)}</span>
+        <span class="badge ${cls}">${label}</span><span class="spacer"></span>${slots(m.active, m.max_concurrent)}</div>
+      <div class="url">${esc(m.url)}${m.has_api_key ? ' · <span title="API key configured">🔑</span>' : ""}</div>
+      <div class="stats">
+        <div class="stat"><div class="l">Performance</div><div class="v">${nf1.format(m.performance)}</div></div>
+        <div class="stat"><div class="l">Prefill obs.</div><div class="v">${m.observed_prefill_tps ? nf0.format(m.observed_prefill_tps) : "—"}</div></div>
+        <div class="stat"><div class="l">Obs. generation</div><div class="v">${m.observed_gen_tps ? nf1.format(m.observed_gen_tps) : "—"}</div></div>
+      </div>
+      <div class="chips">${m.models.map(x => `<span class="chip ${x.type === "embedding" ? "emb" : ""}" title="${x.backend_name ? "backend: " + esc(x.backend_name) : ""}">${esc(x.name)}<span class="t">${x.type === "embedding" ? "emb" : "llm"}</span></span>`).join("") || '<span class="muted">No models</span>'}</div>
+      ${m.last_error && m.enabled && !m.healthy ? `<div class="errline">${esc(m.last_error)}</div>` : ""}
+      <div class="actions">
+        <button class="btn sm" data-act="check">Test</button>
+        <button class="btn sm" data-act="edit">Edit</button>
+        <button class="btn sm" data-act="${m.enabled ? "disable" : "enable"}">${m.enabled ? "Disable" : "Enable"}</button>
+        <span class="spacer"></span>
+        <button class="btn sm danger" data-act="delete">Remove</button>
+      </div>
+    </div>`;
+  }).join("") : '<div class="panel empty">No machines in the pool. Click "Add a machine".</div>';
+}
+$("#m-cards").onclick = async e => {
+  const b = e.target.closest("button[data-act]"); if (!b) return;
+  const name = b.closest(".card").dataset.name, act = b.dataset.act;
+  const enc = encodeURIComponent(name);
+  try {
+    if (act === "edit") return openDialog(machines.find(m => m.name === name));
+    if (act === "delete") {
+      const m = machines.find(x => x.name === name);
+      const extra = m.active ? `\n${m.active} active request(s) will complete.` : "";
+      if (!confirm(`Remove machine "${name}" from the pool?${extra}`)) return;
+      await api(`/api/machines/${enc}`, {method: "DELETE"}); toast(`Machine ${name} removed`);
+    } else {
+      b.disabled = true;
+      const m = await api(`/api/machines/${enc}/${act}`, {method: "POST"});
+      toast(act === "check" ? `${name}: ${m.healthy ? "online" : "offline"}` : `${name} ${act === "enable" ? "enabled" : "disabled"}`, act === "check" && !m.healthy);
+    }
+  } catch (err) { toast(err.message, true); }
+  loadMachines();
+};
+
+// --- add / edit dialog
+const dlg = $("#dlg"), form = $("#m-form");
+let editing = null;
+function modelRow(m = {}) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td><input data-k="name" placeholder="llama-3.1-8b" value="${esc(m.name ?? "")}"></td>
+    <td><select data-k="type"><option value="llm">LLM</option><option value="embedding">Embedding</option></select></td>
+    <td><input data-k="backend_name" placeholder="(same)" value="${esc(m.backend_name ?? "")}"></td>
+    <td><input data-k="max_concurrent" type="number" min="1" placeholder="—" value="${esc(m.max_concurrent ?? "")}"></td>
+    <td><button type="button" class="icon-btn" title="Remove this model" aria-label="Remove this model">✕</button></td>`;
+  $("select", tr).value = m.type || "llm";
+  $("button", tr).onclick = () => tr.remove();
+  $("#models-rows").appendChild(tr);
+}
+function openDialog(m = null) {
+  editing = m; form.reset(); $("#models-rows").innerHTML = ""; $("#form-error").textContent = "";
+  $("#probe-out").hidden = true;
+  $("#dlg-title").textContent = m ? `Edit "${m.name}"` : "Add a machine";
+  form.name.readOnly = !!m;
+  $("#clear-key-wrap").hidden = !(m && m.has_api_key);
+  form.api_key.placeholder = m && m.has_api_key ? "(unchanged)" : "(none)";
+  if (m) {
+    form.name.value = m.name; form.url.value = m.url; form.performance.value = m.performance;
+    form.max_concurrent.value = m.max_concurrent; form.enabled.checked = m.enabled;
+    form.supports_stream_options.checked = m.supports_stream_options;
+    m.models.forEach(modelRow);
+  }
+  if (!$("#models-rows").children.length) modelRow();
+  dlg.showModal();
+  (m ? form.url : form.name).focus();
+}
+$("#m-add").onclick = () => openDialog();
+$("#add-model").onclick = () => modelRow();
+$("#dlg-cancel").onclick = () => dlg.close();
+$("#probe-btn").onclick = async () => {
+  const out = $("#probe-out"); out.hidden = false; out.textContent = "Connecting…";
+  try {
+    const r = await api("/api/probe", {method: "POST", body: JSON.stringify({
+      url: form.url.value.trim(), api_key: form.api_key.value || null, machine: editing?.name})});
+    if (!r.ok) { out.innerHTML = `<span style="color:var(--err)">Failed: ${esc(r.error)}</span>`; return; }
+    const existing = new Set([...document.querySelectorAll('#models-rows [data-k="name"]')].map(i => i.value));
+    out.innerHTML = `<span style="color:var(--ok)">Reachable (${nf0.format(r.latency_ms)} ms).</span> ` +
+      (r.models.length ? `Announced models, click to add: <div class="chips" style="margin-top:6px">${
+        r.models.map(x => `<span class="chip" data-m="${esc(x)}">${existing.has(x) ? "✓ " : "+ "}${esc(x)}</span>`).join("")}</div>`
+        : "No models announced by the backend.");
+    out.querySelectorAll("[data-m]").forEach(c => c.onclick = () => {
+      const name = c.dataset.m;
+      const empty = [...document.querySelectorAll("#models-rows tr")].find(tr => !$('[data-k="name"]', tr).value);
+      const isEmb = /embed|bge|e5|gte|minilm|nomic/i.test(name);
+      if (empty) { $('[data-k="name"]', empty).value = name; $('[data-k="type"]', empty).value = isEmb ? "embedding" : "llm"; }
+      else modelRow({name, type: isEmb ? "embedding" : "llm"});
+      c.textContent = "✓ " + name;
+    });
+  } catch (err) { out.innerHTML = `<span style="color:var(--err)">${esc(err.message)}</span>`; }
+};
+form.onsubmit = async e => {
+  e.preventDefault();
+  const models = [...document.querySelectorAll("#models-rows tr")].map(tr => {
+    const g = k => $(`[data-k="${k}"]`, tr).value.trim();
+    return {name: g("name"), type: g("type"), backend_name: g("backend_name") || null,
+            max_concurrent: g("max_concurrent") ? parseInt(g("max_concurrent"), 10) : null};
+  }).filter(m => m.name);
+  const body = {
+    name: form.name.value.trim(), url: form.url.value.trim(),
+    performance: parseFloat(form.performance.value), max_concurrent: parseInt(form.max_concurrent.value, 10),
+    enabled: form.enabled.checked, supports_stream_options: form.supports_stream_options.checked, models,
+  };
+  if (form.api_key.value) body.api_key = form.api_key.value;
+  else if (editing && form.clear_key.checked) body.api_key = "";
+  else if (editing) body.api_key = null;
+  if (!body.name || !body.url) { $("#form-error").textContent = "Name and URL are required."; return; }
+  if (!models.length && !confirm("No model declared: the machine will not receive any requests. Continue?")) return;
+  $("#dlg-save").disabled = true;
+  try {
+    const m = editing
+      ? await api(`/api/machines/${encodeURIComponent(editing.name)}`, {method: "PUT", body: JSON.stringify(body)})
+      : await api("/api/machines", {method: "POST", body: JSON.stringify(body)});
+    dlg.close();
+    toast(`${m.name} ${editing ? "updated" : "added"} · ${m.enabled ? (m.healthy ? "online" : "offline") : "disabled"}`, m.enabled && !m.healthy);
+    loadMachines();
+  } catch (err) { $("#form-error").textContent = err.message; }
+  finally { $("#dlg-save").disabled = false; }
+};
+
+// ------------------------------------------------------------------ STATS
+async function loadStats() {
+  const d = await api("/api/stats?hours=" + $("#s-hours").value);
+  const maxP = Math.max(1, ...d.stats.map(s => s.avg_prefill_tps || 0));
+  const maxG = Math.max(1, ...d.stats.map(s => s.avg_gen_tps || 0));
+  const bar = (v, max, a, b) => v ? `<span class="num" style="display:inline-block;min-width:62px;text-align:right">${nf1.format(v)}</span><span class="minibar"><i style="width:${(v / max * 100).toFixed(1)}%"></i></span> <span class="muted num" style="font-size:12px;margin-left:6px">${nf1.format(a)}–${nf1.format(b)}</span>` : '<span class="muted">—</span>';
+  $("#s-body").innerHTML = d.stats.length ? d.stats.map(s => `<tr>
+    <td>${esc(s.machine ?? "— (unrouted)")}</td><td class="mono">${esc(s.model)}</td>
+    <td class="r num">${nf0.format(s.requests)}</td><td class="r num">${s.errors ? `<span style="color:var(--err)">${s.errors}</span>` : 0}</td>
+    <td>${bar(s.avg_prefill_tps, maxP, s.min_prefill_tps, s.max_prefill_tps)}</td>
+    <td>${bar(s.avg_gen_tps, maxG, s.min_gen_tps, s.max_gen_tps)}</td>
+    <td class="r num">${ms(s.avg_ttft_ms)}</td><td class="r num">${ms(s.avg_queue_wait_ms)} / ${ms(s.max_queue_wait_ms)}</td>
+    <td class="r num">${num(s.total_prompt_tokens, nf0)} / ${num(s.total_completion_tokens, nf0)}</td>
+  </tr>`).join("") : `<tr><td colspan="9" class="empty">No data for this period.</td></tr>`;
+}
+$("#s-hours").onchange = () => loadStats();
+
+// ------------------------------------------------------------------ refresh loop
+let busy = false, lastOk = Date.now(), tick = 0;
+async function refresh(force = false) {
+  if (busy && !force) return;
+  busy = true;
+  try {
+    if (currentTab === "live") await loadLive();
+    else if (currentTab === "history") { if (force || ($("#f-auto").checked && tick % 5 === 0 && !H.open.size)) await loadHistory(); }
+    else if (currentTab === "machines") { if (force || (tick % 3 === 0 && !dlg.open)) await loadMachines(); }
+    else if (currentTab === "stats") { if (force || tick % 10 === 0) await loadStats(); }
+    if (currentTab !== "live" && tick % 5 === 0) await loadOverview();
+    lastOk = Date.now();
+  } catch (e) { console.error(e); }
+  finally { busy = false; }
+  $("#live-dot").classList.toggle("stale", Date.now() - lastOk > 5000);
+}
+setInterval(() => { tick++; if (!document.hidden) refresh(); }, 1000);
+const initial = location.hash.slice(1);
+showTab(["live", "history", "machines", "stats"].includes(initial) ? initial : "live");
+</script>
+</body>
+</html>

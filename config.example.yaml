@@ -1,0 +1,91 @@
+# ---------------------------------------------------------------------------
+# LLM Router : configuration
+# ---------------------------------------------------------------------------
+
+# ---- OpenAI API (internet-facing) -------------------------------------------
+server:
+  host: 0.0.0.0
+  port: 8000
+  # Accepted keys. Generate one with:  python -m llm_router --gen-key
+  # Clients send "Authorization: Bearer <key>" (or "X-API-Key: <key>").
+  # The name is used to identify which client made which request in the console.
+  # Can also be set via the environment variable LLM_ROUTER_API_KEYS="key1,key2".
+  api_keys:
+    - name: app-compliance
+      key: "sk-router-REPLACE-ME-with-a-generated-key"
+  allow_no_auth: false         # true = start without a key (use only on a LAN)
+  # Direct HTTPS (otherwise use a reverse proxy: Caddy, nginx, Traefik…)
+  ssl_certfile: null
+  ssl_keyfile: null
+  forwarded_allow_ips: null    # reverse proxy IP, to log the real client IP
+  default_priority: medium     # priority if the request does not specify one (low | medium | high)
+  max_queue_size: 1000         # beyond this: HTTP 429
+  queue_timeout: 300           # max seconds in queue before HTTP 503
+  request_timeout: 600         # max seconds for a backend response
+  connect_timeout: 5
+  health_check_interval: 15    # GET <url>/models every N seconds (0 = disabled)
+  aging_seconds: 0             # anti-starvation: +1 priority level every N seconds of waiting (0 = off)
+  internal_streaming: true     # internally stream non-streaming requests to measure prefill
+  max_retries: 1               # retries on another machine if the first is unreachable
+  db_path: router_metrics.db   # SQLite metrics file (relative to this file's directory)
+  log_file: router_requests.jsonl  # one JSON line per request (null to disable)
+  machines_file: machines.yaml # pool modified from the console; if it exists, overrides the 'machines' section below
+
+# ---- Web administration console (local network, no authentication) -----------
+admin:
+  enabled: true
+  host: 0.0.0.0                # prefer the machine's LAN IP, e.g. 192.168.1.5
+  port: 8001                   # DO NOT forward this port from your router / firewall
+  allowed_networks:            # only these IPs can open the console (403 otherwise)
+    - 127.0.0.0/8
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16
+    - ::1/128
+    - fc00::/7
+    - fe80::/10
+
+# ---- Initial machine pool ---------------------------------------------------
+
+# performance : relative score (higher = faster). When multiple free machines
+#   have the model, the most performant one is chosen.
+# max_concurrent : number of simultaneous requests a machine accepts before
+#   being considered "busy". Set this to the backend's slot count
+#   (llama.cpp --parallel, vLLM: higher, Ollama: OLLAMA_NUM_PARALLEL).
+# models[].max_concurrent : optional per-model limit on this machine.
+# models[].backend_name : model name on the backend side if it differs from the exposed name.
+machines:
+  - name: gpu-4090
+    url: http://192.168.1.10:8080/v1      # llama.cpp server
+    performance: 100
+    max_concurrent: 2
+    models:
+      - name: qwen3-32b
+        type: llm
+      - name: llama-3.1-8b
+        type: llm
+
+  - name: gpu-3090
+    url: http://192.168.1.11:11434/v1     # Ollama
+    performance: 70
+    max_concurrent: 2
+    models:
+      - name: llama-3.1-8b
+        backend_name: llama3.1:8b
+        type: llm
+      - name: bge-m3
+        backend_name: bge-m3:latest
+        type: embedding
+        max_concurrent: 4
+
+  - name: mac-studio
+    url: http://192.168.1.12:8000/v1      # vLLM / LM Studio / MLX…
+    performance: 40
+    max_concurrent: 1
+    api_key: null
+    supports_stream_options: true         # false if the backend rejects stream_options
+    models:
+      - name: llama-3.1-8b
+        type: llm
+      - name: nomic-embed-text
+        type: embedding

@@ -1,0 +1,29 @@
+# Machine pool managed by the router admin console.
+# This file takes precedence over the 'machines' section of config.yaml.
+machines:
+- name: MacStudio
+  url: http://192.168.1.32:11434/v1
+  performance: 8.0
+  max_concurrent: 1
+  enabled: true
+  supports_stream_options: true
+  models:
+  - name: qwen3.8:27b
+    type: llm
+  - name: deepseek-r1:14b
+    type: llm
+  - name: nomic-embed-text:v1.5
+    type: embedding
+- name: Prod3090
+  url: http://192.168.1.4:11434/v1
+  performance: 10.0
+  max_concurrent: 1
+  enabled: true
+  supports_stream_options: true
+  models:
+  - name: qwen3.8:27b
+    type: llm
+  - name: deepseek-r1:14b
+    type: llm
+  - name: nomic-embed-text:latest
+    type: embedding
