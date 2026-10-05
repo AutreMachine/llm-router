@@ -5,7 +5,7 @@
 ![Github last-commit](https://img.shields.io/github/last-commit/AutreMachine/llm-router.git)
 
 Have you felt the need to add new machines to your local network to host new LLMs ?
-Have you felt frustrated with the price of high end GPUs and dreamt of adding several smaller and cheaper LLM machines in your network to serve more clients ?
+Have you felt frustrated with the price of high end GPUs and dreamt of adding several smaller and cheaper LLM machines in your network to process more requests ?
 This old RTX 3090 could well help to serve more clients...
 
 The solution ? Being able to add several LLM-capable servers to your network and call just one address. 
