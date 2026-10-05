@@ -1,10 +1,8 @@
 [![Docker Pulls](https://badgen.net/docker/pulls/autremachine/llm-router?icon=docker&label=pulls)](https://hub.docker.com/r/autremachine/llm-router/)
 [![Docker Stars](https://badgen.net/docker/stars/autremachine/llm-router?icon=docker&label=stars)](https://hub.docker.com/r/autremachine/llm-router/)
 [![Docker Image Size](https://badgen.net/docker/size/autremachine/llm-router?icon=docker&label=image%20size)](https://hub.docker.com/r/autremachine/llm-router/)
-![Github stars](https://badgen.net/github/stars/AutreMachine/llm-router?icon=github&label=stars)
-![Github forks](https://badgen.net/github/forks/AutreMachine/llm-router?icon=github&label=forks)
-![Github issues](https://img.shields.io/github/issues/AutreMachine/llm-router)
-![Github last-commit](https://img.shields.io/github/last-commit/AutreMachine/llm-router)
+![Github issues](https://img.shields.io/github/issues/AutreMachine/llm-router.git)
+![Github last-commit](https://img.shields.io/github/last-commit/AutreMachine/llm-router.git)
 
 Have you felt the need to add new machines to your local network to host new LLMs ?
 Have you felt frustrated with the price of high end GPUs and dreamt of adding several smaller and cheaper LLM machines in your network to serve more clients ?
