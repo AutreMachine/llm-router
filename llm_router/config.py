@@ -5,6 +5,7 @@ import os
 import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+import sys
 from typing import Optional
 
 import yaml
@@ -67,9 +68,9 @@ class ServerConfig:
     aging_seconds: float = 0.0            # +1 priority level every N seconds of waiting (0 = off)
     internal_streaming: bool = True       # internally stream non-streaming requests to measure prefill
     max_retries: int = 1                  # retries if a machine is unreachable
-    db_path: str = "router_metrics.db"
-    log_file: Optional[str] = "router_requests.jsonl"
-    machines_file: Optional[str] = "machines.yaml"  # pool modified from the console (takes precedence at startup)
+    db_path: str = "/data/router_metrics.db"
+    log_file: Optional[str] = "/data/router_requests.jsonl"
+    machines_file: Optional[str] = "/data/machines.yaml"  # pool modified from the console (takes precedence at startup)
 
     def parsed_keys(self) -> list[ApiKey]:
         keys: list[ApiKey] = []
@@ -183,6 +184,13 @@ def parse_machines(raw_list: list) -> list[MachineConfig]:
 
 def load_config(path: str | Path) -> Config:
     path = Path(path).resolve()
+    
+    if not path.exists():
+        print(f"Error : Configuration file not found: {path}")
+        print(f"Please provide a valid configuration file on path {path}.")
+        sys.exit(1)
+        #raise FileNotFoundError(f"Configuration file not found: {path}")
+    
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     server = ServerConfig(**(data.get("server") or {}))
     if server.default_priority.lower() not in ("low", "medium", "high"):
