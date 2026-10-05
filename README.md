@@ -1,10 +1,12 @@
 # LLM Router
-Have you recently felt the need to add new machines in your local network to host new LLMs ?
+Have you recently felt the need to add new machines to your local network to host new LLMs ?
 Have you felt frustrated with the price of high end GPUs and dreamt of adding several smaller and cheaper LLM machines in your network to serve more clients ?
+
+The solution ? Being able to add several LLM-capable servers to your network and call just one address. Grow your LLM farm and call only one endpoint.
 
 LLM Router is an OpenAI-compatible load balancer / router for LLMs and embedding models spread across multiple machines
 (llama.cpp, Ollama, vLLM, LM Studio… : anything that exposes `/v1/chat/completions`, `/v1/completions`, `/v1/embeddings`).
-You can easily add more LLM-capable servers to your network and call just one address. 
+. 
 
 Single process, two ports:
 
