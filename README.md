@@ -12,6 +12,8 @@ The solution ? Being able to add several LLM-capable servers to your network and
 
 The idea : Grow your LLM farm and just call one endpoint.
 
+<img width="1405" height="517" alt="image" src="https://github.com/user-attachments/assets/8f7c30db-7ca5-4024-b5b2-043cb86dffe9" />
+
 
 # LLM Router
 
