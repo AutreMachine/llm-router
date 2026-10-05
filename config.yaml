@@ -5,14 +5,14 @@
 # ---- OpenAI API (internet-facing) -------------------------------------------
 server:
   host: 0.0.0.0
-  port: 8000
+  port: 42424
   # Accepted keys. Generate one with:  python -m llm_router --gen-key
   # Clients send "Authorization: Bearer <key>" (or "X-API-Key: <key>").
   # The name is used to identify which client made which request in the console.
   # Can also be set via the environment variable LLM_ROUTER_API_KEYS="key1,key2".
   api_keys:
     - name: app-compliance
-      key: "sk-router-REPLACE-ME-with-a-generated-key"
+      key: "sk-router-GInZO9iTvneNx8UdT6xapMJqq0N-8sWrOe9jfaYETMA"
   allow_no_auth: false         # true = start without a key (use only on a LAN)
   # Direct HTTPS (otherwise use a reverse proxy: Caddy, nginx, Traefik…)
   ssl_certfile: null
@@ -35,7 +35,7 @@ server:
 admin:
   enabled: true
   host: 0.0.0.0                # prefer the machine's LAN IP, e.g. 192.168.1.5
-  port: 8001                   # DO NOT forward this port from your router / firewall
+  port: 42425                   # DO NOT forward this port from your router / firewall
   allowed_networks:            # only these IPs can open the console (403 otherwise)
     - 127.0.0.0/8
     - 10.0.0.0/8
