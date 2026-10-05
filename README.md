@@ -32,7 +32,7 @@ Single process, two ports:
 pip install -r requirements.txt
 cp config.example.yaml config.yaml
 python -m llm_router --gen-key        # copy the key into config.yaml > server.api_keys
-python -m llm_router -c config.yaml
+python -m llm_router -c config/config.yaml
 ```
 
 Then open `http://<router-ip>:8001/` from the local network.
