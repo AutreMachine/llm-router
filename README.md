@@ -38,13 +38,17 @@ Single process, two ports:
 
 ```bash
 pip install -r requirements.txt
-cp config.example.yaml config.yaml
+cp config/config.example.yaml config/config.yaml
 python -m llm_router --gen-key        # copy the key into config.yaml > server.api_keys
 python -m llm_router -c config/config.yaml
 ```
 
 Then open `http://<router-ip>:8001/` from the local network.
 A "data" folder will be created on the disk to store the metrics.
+
+## Adding a new app in the config
+In the config, you can create a new item in the api_keys section with a new key (see how to generate in Installation).
+This way, you can monitor to which app a call is linked.
 
 ## Docker
 You can use this docker-compose file :
