@@ -36,6 +36,7 @@ Single process, two ports:
 
 ## Installation
 
+### From source
 ```bash
 pip install -r requirements.txt
 cp config/config.example.yaml config/config.yaml
@@ -46,11 +47,7 @@ python -m llm_router -c config/config.yaml
 Then open `http://<router-ip>:8001/` from the local network.
 A "data" folder will be created on the disk to store the metrics.
 
-## Adding a new app in the config
-In the config, you can create a new item in the api_keys section with a new key (see how to generate in Installation).
-This way, you can monitor to which app a call is linked.
-
-## Docker
+### From Docker
 You can use this docker-compose file :
 ```
 services:
@@ -66,7 +63,42 @@ services:
       - "42001:8001"   # Admin console : modify with your port (here : 42001, port 8001 is the one in the admin: section of config.yaml))
 
 ```
-The volume "config" map to the folders containing the config.yaml file, and the "data" contains data produced by the API.
+The volume *config* map to the folders containing the config.yaml file, and the *data* contains data produced by the API.
+
+To start, you *need* to copy the config.example.yaml to config.yaml in your *config* folder.
+
+
+## Config
+### Port
+Port for the API is declared in the config file :
+```
+# ---- OpenAI API (internet-facing) -------------------------------------------
+server:
+  host: 0.0.0.0
+  port: 8000
+```
+
+Port for the Admin app  is also declared in the config file :
+```
+# ---- Web administration console (local network, no authentication) -----------
+admin:
+  enabled: true
+  host: 0.0.0.0                # prefer the machine's LAN IP, e.g. 192.168.1.5
+  port: 8001                   # DO NOT forward this port from your router / firewall
+```
+
+### Adding a new app in the config
+In the config, you can create a new item in the api_keys section with a new key (see how to generate a key in Installation).
+This way, you can monitor to which app a call is linked.
+
+```
+api_keys:
+    - name: my-first-app
+      key: "sk-router-REPLACE-ME-with-a-generated-key"
+    - name : my-second-app
+    key: "sk-router-REPLACE-ME-with-a-generated-key"```
+```
+
 
 ## How routing works
 
